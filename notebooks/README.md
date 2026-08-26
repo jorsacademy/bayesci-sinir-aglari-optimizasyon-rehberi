@@ -1,120 +1,88 @@
 # Uygulamalı Notebooklar
 
-Bu klasör, Bayesçi sinir ağlarının endüstri mühendisliği ve yöneylem araştırması problemlerine nasıl bağlanabileceğini dört farklı karar mimarisi üzerinden gösterir.
+Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini beş farklı mimari üzerinden gösterir.
 
 ## 1. BNN ile Talep Belirsizliği ve Stok/Üretim Optimizasyonu
 
 [`bnn_talep_stok_optimizasyonu.ipynb`](./bnn_talep_stok_optimizasyonu.ipynb)
 
-Akış:
-
 ```text
-Sentetik / gerçek talep verisi
-        ↓
-Pyro ile Bayesçi Sinir Ağı
-        ↓
-Variational Inference (SVI)
-        ↓
-Posterior predictive talep senaryoları
-        ↓
-Sample Average Approximation (SAA)
-        ↓
-Pyomo + HiGHS
-        ↓
-Optimal üretim miktarı
-        ↓
-Deterministik karar ile maliyet / stokout / CVaR karşılaştırması
+Talep verisi → Pyro BNN → posterior predictive senaryolar → SAA → Pyomo + HiGHS → üretim kararı
 ```
 
-Bu notebook BNN'nin **senaryo üreticisi**, Pyomo'nun ise **karar çözücüsü** olduğu temel mimariyi gösterir.
+BNN'nin senaryo üreticisi, matematiksel programlamanın ise karar çözücüsü olduğu temel mimaridir.
 
-## 2. BNN + CVaR + Chance Constraint ile Risk-Duyarlı Üretim Planlama
+## 2. BNN + CVaR + Chance Constraint
 
 [`bnn_cvar_chance_constraint_uretim.ipynb`](./bnn_cvar_chance_constraint_uretim.ipynb)
 
-Aynı posterior predictive talep dağılımı altında üç karar yaklaşımını karşılaştırır:
+Aynı posterior predictive talep dağılımı altında:
 
 - beklenen maliyet / SAA,
-- CVaR95 optimizasyonu,
-- %95 hizmet seviyesi sağlayan chance-constraint yaklaşımı.
+- CVaR95,
+- %95 hizmet seviyesi / chance constraint
 
-Temel fikir:
-
-```text
-BNN posterioru
-      ↓
-Talep senaryoları
-      ↓
-Risk tercihi
-  ↙    ↓     ↘
-SAA   CVaR   Chance Constraint
-  ↘    ↓     ↙
-   Pyomo + HiGHS
-        ↓
-Karar kalitesi karşılaştırması
-```
-
-Bu örnek, **uncertainty modeling** ile **risk preference** kavramlarının birbirinden ayrı olduğunu gösterir.
+yaklaşımlarını karşılaştırır. `uncertainty model` ile `risk preference` kavramlarının ayrı olduğunu gösterir.
 
 ## 3. Pyro BNN Surrogate + BoTorch ile Bayesçi Optimizasyon
 
 [`bnn_botorch_bayesian_optimizasyon.ipynb`](./bnn_botorch_bayesian_optimizasyon.ipynb)
 
-Pahalı black-box proses veya simülasyon fonksiyonları için:
-
 ```text
-Başlangıç deneyleri
-       ↓
-Pyro BNN surrogate
-       ↓
-Posterior predictive samples
-       ↓
-BoTorch EnsembleModel / Posterior
-       ↓
-qLogExpectedImprovement
-       ↓
-Yeni deney noktası
-       ↓
-Sistemi değerlendir ve döngüyü tekrarla
+Başlangıç deneyleri → Pyro BNN surrogate → posterior samples → BoTorch → acquisition → yeni deney
 ```
 
-Örnek iki proses parametresi üzerinde çalışır. Aynı yapı aşağıdakilere uyarlanabilir:
+Pahalı fiziksel deneyler, ayrık olay simülasyonları, dijital ikiz, FEA/CFD ve proses optimizasyonu için BNN'nin surrogate rolünü gösterir.
 
-- ayrık olay simülasyonu,
-- dijital ikiz,
-- gerçek fabrika deneyleri,
-- FEA / CFD,
-- enerji sistemi simülasyonu,
-- kalite ve proses optimizasyonu.
+BoTorch'un Monte Carlo acquisition fonksiyonları surrogate modelin GP olmasını zorunlu kılmaz; örneklenebilir bir posterior sağlayan custom modellerle de çalışabilir.
 
-BoTorch'un Monte Carlo acquisition fonksiyonları surrogate modelin GP olmasını zorunlu kılmaz; örneklenebilir bir posterior sağlayan custom modellerle de çalışabilir. Bu notebook Pyro posterior predictive örneklerini `EnsembleModel` üzerinden BoTorch'a bağlar.
-
-## 4. Heteroskedastik BNN + Aleatorik/Epistemik Ayrıştırma + CVaR/Chance Constraint
+## 4. Heteroskedastik BNN + Aleatorik/Epistemik Ayrıştırma
 
 [`heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb`](./heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb)
 
-Bu notebookta talep varyansı girdiye göre değişir. BNN aynı anda koşullu ortalamayı ve koşullu standart sapmayı öğrenir:
+Talep varyansının girdiye göre değiştiği durumda BNN aynı anda:
+
+- \(\mu_w(x)\): koşullu ortalama,
+- \(\sigma_w(x)\): girdiye bağlı gözlem gürültüsü
+
+öğrenir. Toplam varyans yasasıyla:
+
+\[
+Var(Y\mid x,D)=E_w[\sigma_w^2(x)]+Var_w[\mu_w(x)]
+\]
+
+ayrıştırması yapılır ve posterior predictive senaryolar CVaR/chance-constraint kararlarına bağlanır.
+
+Notebook ayrıca, posterior ortalama fonksiyonunu kullanıp gözlem gürültüsünü yok saymanın riskli bölgelerde kapasiteyi düşük tahmin edebileceğini açıkça gösterir.
+
+## 5. Bayesian Last Layer / Neural Linear + BoTorch
+
+[`bayesian_last_layer_botorch.ipynb`](./bayesian_last_layer_botorch.ipynb)
+
+Bu notebook **tam BNN değildir**. Gizli katmanlar deterministik olarak özellik öğrenir; yalnız son lineer katmanın ağırlıkları Bayesçi modellenir:
 
 ```text
-x
-↓
-BNN
-├── μ_w(x): koşullu ortalama
-└── σ_w(x): girdiye bağlı gözlem gürültüsü
-↓
-Toplam varyans yasası
-├── E_w[σ_w²(x)]       → beklenen koşullu / aleatorik varyans
-└── Var_w[μ_w(x)]      → epistemik varyans
-↓
-posterior predictive senaryolar
-├── ampirik %95 chance constraint
-└── CVaR95 optimizasyonu
+Deney verisi
+    ↓
+deterministik backbone
+    ↓
+φ(x): öğrenilmiş özellikler
+    ↓
+Bayesçi lineer son katman
+β | D ~ N(m, Σ)
+    ↓
+posterior ağırlık örnekleri
+    ↓
+BoTorch EnsembleModel
+    ↓
+qLogExpectedImprovement
+    ↓
+yeni deney noktası
 ```
 
-Notebook ayrıca iki önemli uyarıyı açıkça gösterir:
+Gaussian prior + Gaussian likelihood altında son katman posterioru kapalı formda hesaplanabildiğinden full BNN'ye göre çok daha hafiftir. Özellikle online/sequential optimization için pragmatik bir alternatiftir.
 
-- posterior ortalama fonksiyonunu kullanıp gözlem gürültüsünü yok saymak riskli bölgelerde gerekli kapasiteyi düşük tahmin edebilir,
-- örnekleme dayalı chance constraint çözümü otomatik olarak dağılımdan bağımsız sonlu-örneklem garantisi vermez; scenario-approach teorisi veya out-of-sample doğrulama gerekir.
+Önemli sınırlama: backbone ağırlıklarının belirsizliği posteriora taşınmaz. Bu nedenle BLL'nin epistemik belirsizliği full BNN ile aynı değildir ve OOD bölgelerinde aşırı güven sorunu görülebilir.
 
 ## Kurulum
 
@@ -138,30 +106,22 @@ Daha sonra `notebooks/` klasöründeki notebookları açıp hücreleri sırayla 
 - `highspy`: HiGHS LP/MIP çözücüsü
 - `numpy`, `pandas`, `matplotlib`: veri işleme ve görselleştirme
 
-## Endüstri mühendisliği açısından genel mimari
+## Endüstri mühendisliği açısından genel roller
 
-BNN çoğu örnekte doğrudan optimizasyon çözücüsü değildir. Dört temel rol üstlenir:
+Bu repoda BNN/Bayesian surrogate doğrudan optimizasyon çözücüsü olmaktan çok şu rolleri üstlenir:
 
 1. **Belirsiz parametre modeli:** talep, işlem süresi, lead time, arıza riski vb.
-2. **Senaryo üreticisi:** stochastic programming, CVaR veya chance constraints için posterior örnekleri.
+2. **Senaryo üreticisi:** stochastic programming, CVaR ve chance constraints.
 3. **Surrogate model:** pahalı simülasyon veya fiziksel deneylerin Bayesçi optimizasyonu.
-4. **Belirsizlik ayrıştırıcı:** aleatorik ve epistemik bileşenleri karar modeline ayrı ayrı taşıma.
+4. **Belirsizlik ayrıştırıcı:** aleatorik ve epistemik bileşenleri karar modeline taşıma.
+5. **Hafif online surrogate:** Bayesian Last Layer ile düşük maliyetli posterior güncellemesi.
 
-Bu mimariler şu belirsiz büyüklüklere uygulanabilir:
-
-- işlem süreleri → çizelgeleme,
-- lead time → tedarik zinciri,
-- arıza / kalan faydalı ömür → bakım planlama,
-- taşıma süreleri → araç rotalama,
-- enerji tüketimi / kalite → proses optimizasyonu,
-- pahalı simülasyon çıktıları → simulation optimization.
+Bu mimariler işlem süresi, lead time, arıza/RUL, taşıma süresi, enerji tüketimi, kalite, talep ve pahalı simülasyon çıktıları gibi IE/OR büyüklüklerine uyarlanabilir.
 
 ## BNN aileleri ve teorik dayanak
 
-Repo kapsamında henüz notebooka dönüşmemiş BNN türleri için kök dizindeki [`BNN_AILELERI.md`](../BNN_AILELERI.md) dosyasına bakın.
-
-Kullanılan temel matematiksel yapıların hangi klasik çalışmalara ve standart OR literatürüne dayandığı için [`TEORIK_DAYANAK.md`](../TEORIK_DAYANAK.md) dosyasına bakın.
+Henüz notebooka dönüşmemiş yöntemler için [`BNN_AILELERI.md`](../BNN_AILELERI.md), matematiksel dayanak ve sınırlar için [`TEORIK_DAYANAK.md`](../TEORIK_DAYANAK.md) dosyasına bakın.
 
 ## Not
 
-Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, out-of-distribution davranışı, senaryo sayısı duyarlılığı, baseline modeller, computation budget ve downstream karar kalitesi ayrıca doğrulanmalıdır.
+Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, senaryo sayısı duyarlılığı, baseline modeller, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
