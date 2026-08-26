@@ -1,5 +1,6 @@
 torch
 pyro-ppl
+botorch
 numpy
 pandas
 matplotlib
