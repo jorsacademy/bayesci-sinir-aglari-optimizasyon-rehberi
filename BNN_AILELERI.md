@@ -120,18 +120,55 @@ Ardından objective yönleri
 
 Notebook ortak Bayesçi backbone kullanır, fakat residual likelihood diagonal covariance varsayar. Dolayısıyla tam multivariate residual covariance modeli değildir.
 
-## 8. Hierarchical BNN
+## 8. Hierarchical BNN / Partial Pooling
 
-**Durum:** Henüz yok.
+**Durum:** Repoda uygulamalı rehber var.
 
-Fabrika, makine, ürün, tedarikçi veya bölge düzeyinde partial pooling için hiyerarşik priorlar kullanılır.
+Rehber: [`notebooks/hierarchical_bnn_partial_pooling_kapasite_tahsisi.md`](./notebooks/hierarchical_bnn_partial_pooling_kapasite_tahsisi.md)
+
+Dört fabrikanın aynı temel nonlinear proses ilişkisini paylaştığı fakat lokal sapmalarının ve veri miktarlarının farklı olduğu bir örnek kurulur.
+
+Ortak BNN:
+
+\[
+g_w(x)=W_2\tanh(W_1x+b_1)+b_2.
+\]
+
+Fabrika düzeyi random effect'ler:
+
+\[
+a_j\sim\mathcal N(\mu_a,\tau_a^2),
+\]
+
+\[
+b_j\sim\mathcal N(\mu_b,\tau_b^2).
+\]
+
+Tahmin:
+
+\[
+\mu_{ij}=g_w(x_{ij})+a_j+b_j\widetilde{load}_{ij}.
+\]
+
+Bu yapı **partial pooling** üretir: fabrikalar tamamen ayrı değildir fakat aynı davranışa da zorlanmaz. Az verili fabrikanın posterioru ortak grup bilgisiyle düzenlenebilir ve genellikle daha geniş belirsizlik taşır.
+
+Posterior predictive fabrika kapasite senaryoları daha sonra Pyomo ile stokastik kapasite tahsisi problemine aktarılır.
 
 IE açısından doğal kullanım alanları:
 
-- çok fabrika proses modeli,
-- tedarikçiler arası lead-time,
-- ürün aileleri arası talep,
-- makine grupları arası arıza davranışı.
+- çok fabrika kapasite / verim modeli,
+- makine grupları için işlem süresi,
+- tedarikçi grupları için lead time / kalite,
+- ürün aileleri için talep,
+- bölgesel talep ve network allocation.
+
+### Kritik sınır
+
+**Her hiyerarşik problem BNN gerektirmez.**
+
+Eğer ilişki basitse hierarchical linear model / GLMM / mixed-effects model daha yorumlanabilir ve daha ucuz olabilir. BNN, nonlinear ortak response surface gerçekten gerekliyse anlamlıdır.
+
+Ayrıca mean-field VI hiyerarşik posterior korelasyonlarını zayıf temsil edebilir; HMC/NUTS veya daha zengin variational posteriorlarla hassasiyet analizi yapılabilir.
 
 ## 9. Bayesian RNN / LSTM / temporal BNN
 
@@ -196,6 +233,7 @@ Tail-risk, CVaR veya chance constraints posterior geometrisine hassassa önemli 
 - Gaussian Process,
 - conformal prediction,
 - quantile regression,
+- hierarchical linear / mixed-effects modeller,
 - klasik response-surface / Bayesian regression modelleri.
 
 Bir endüstriyel projede BNN'nin gerçekten değer katıp katmadığı yalnız RMSE ile değil **downstream karar kalitesi** üzerinden ölçülmelidir.
@@ -207,6 +245,8 @@ Standart teori olan kısımlar:
 - Bayesçi posterior ve posterior predictive,
 - HMC/NUTS,
 - Bayesçi lineer regresyon posterioru,
+- hierarchical priors / partial pooling,
+- random effects,
 - heteroskedastik likelihood,
 - toplam varyans yasası,
 - Pareto dominance,
@@ -221,7 +261,8 @@ Modelleme veya yaklaşık çıkarım tercihi olan kısımlar:
 - Normal likelihood,
 - `AutoDiagonalNormal`,
 - ağ mimarisi,
-- prior ölçekleri,
+- prior/hyperprior ölçekleri,
+- random intercept/slope yapısı,
 - senaryo/posterior sample sayısı,
 - residual covariance'in diagonal seçilmesi,
 - hypervolume reference point,
@@ -231,10 +272,10 @@ Modelleme veya yaklaşık çıkarım tercihi olan kısımlar:
 
 # Repo için sonraki öncelikler
 
-1. **Hierarchical BNN + çok fabrika / çok tedarikçi problemi**
-2. **Laplace Approximation + mevcut PyTorch modelini uncertainty-aware hale getirme**
-3. **Correlated multi-output likelihood / multi-task BNN**
-4. **Constrained multi-objective BO**
+1. **Laplace Approximation + mevcut PyTorch modelini uncertainty-aware hale getirme**
+2. **Correlated multi-output likelihood / multi-task BNN**
+3. **Constrained multi-objective BO**
+4. **Hierarchical BNN için NUTS / richer-VI hassasiyet analizi**
 5. Bayesian RNN / temporal BNN
 6. Bayesian GNN
 7. Physics-Informed BNN
