@@ -3,6 +3,7 @@ pyro-ppl
 botorch
 jax
 numpyro
+laplace-torch
 numpy
 pandas
 matplotlib
