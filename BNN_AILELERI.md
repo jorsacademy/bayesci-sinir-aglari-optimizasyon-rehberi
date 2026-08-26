@@ -42,18 +42,43 @@ OR açısından potansiyel kullanım:
 
 ## 4. Bayesian Last Layer / Neural Linear Model
 
-**Durum:** Ayrı başlık olarak henüz işlenmedi.
+**Durum:** Repoda uygulamalı notebook var.
 
-Sinir ağının özellik çıkarıcı kısmı deterministik tutulur; yalnız son katman Bayesçi modellenir.
+Notebook: [`notebooks/bayesian_last_layer_botorch.ipynb`](./notebooks/bayesian_last_layer_botorch.ipynb)
+
+Sinir ağının özellik çıkarıcı kısmı deterministik tutulur; yalnız son katman Bayesçi modellenir:
+
+\[
+\phi(x)=\text{deterministik backbone çıktısı}
+\]
+
+\[
+f(x)=\tilde\phi(x)^\top\beta,
+\qquad
+\beta\sim\mathcal N(0,\alpha^{-1}I).
+\]
+
+Gaussian likelihood altında son katman posterioru kapalı formda hesaplanabilir:
+
+\[
+\Sigma=(\alpha I+\tau\Phi^\top\Phi)^{-1},
+\]
+
+\[
+m=\tau\Sigma\Phi^\top y.
+\]
 
 Avantajları:
 
 - tam BNN'den daha ucuz,
-- posterior örnekleme daha kolay,
-- BoTorch entegrasyonu için pratik,
+- posterior güncellemesi hızlı,
+- posterior örnekleme kolay,
+- BoTorch entegrasyonu pratik,
 - online/sequential optimization için uygun.
 
-Endüstri mühendisliğinde güçlü bir ara çözüm olabilir: tam BNN kadar pahalı olmadan epistemik belirsizlik elde edilir.
+Sınırlaması kritiktir: backbone ağırlıkları nokta tahminidir. Bu nedenle özellik öğreniminin epistemik belirsizliği modele girmez. BLL, full BNN değildir ve OOD bölgelerinde fazla güvenli olabilir.
+
+Endüstri mühendisliğinde full BNN ile GP arasında güçlü bir pragmatik ara çözüm olabilir.
 
 ## 5. Laplace Approximation BNN
 
@@ -207,6 +232,7 @@ Bu repodaki temel kavramlar standart literatüre dayanır; fakat model çıktıs
 Standart teori olan kısımlar:
 
 - Bayesçi posterior / posterior predictive,
+- Bayesçi lineer regresyonun Gaussian kapalı-form posterioru,
 - heteroskedastik likelihood,
 - toplam varyans yasası,
 - CVaR,
@@ -218,6 +244,7 @@ Modelleme / yaklaşık çıkarım tercihi olan kısımlar:
 
 - Normal likelihood seçimi,
 - `AutoDiagonalNormal` mean-field posterioru,
+- BLL backbone'unun deterministik eğitilmesi,
 - sentetik veri üretim fonksiyonları,
 - senaryo sayısı,
 - prior ölçekleri,
@@ -227,14 +254,15 @@ Bu nedenle `matematiksel olarak geçerli` ile `belirli bir fabrikada ampirik ola
 
 # Repo için önerilen öncelik sırası
 
-Heteroskedastik BNN artık eklendi. Bundan sonraki notebook önceliği:
+Heteroskedastik BNN ve Bayesian Last Layer artık eklendi. Bundan sonraki notebook önceliği:
 
-1. **Bayesian Last Layer + BoTorch**
-2. **NumPyro NUTS vs Variational Inference karşılaştırması**
-3. **Multi-output BNN + multi-objective optimization**
-4. **Hierarchical BNN + çok fabrika / çok tedarikçi problemi**
+1. **NumPyro NUTS vs Variational Inference karşılaştırması**
+2. **Multi-output BNN + multi-objective optimization**
+3. **Hierarchical BNN + çok fabrika / çok tedarikçi problemi**
+4. **Laplace Approximation + mevcut PyTorch modelini uncertainty-aware hale getirme**
 5. Bayesian RNN / temporal BNN
 6. Bayesian GNN
 7. Physics-Informed BNN
+8. SGMCMC / SGLD / SGHMC
 
 Bu sıra, akademik çeşitlilikten çok OR ve endüstri mühendisliği açısından pratik karar değerine göre önerilmiştir.
