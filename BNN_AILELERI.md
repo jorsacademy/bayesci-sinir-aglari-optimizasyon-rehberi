@@ -1,20 +1,12 @@
 # Repo Kapsamında BNN Aileleri: Ne Var, Ne Eksik, Ne Zaman Gerekli?
 
-Bu dosya, optimizasyon, endüstri mühendisliği ve yöneylem araştırması açısından Bayesçi sinir ağı (BNN) ailesini yöntem bazında ayırır. Amaç her yöntemi mutlaka uygulamak değil; hangi belirsizlik yaklaşımının hangi karar problemine uygun olduğunu görmek.
+Bu dosya, optimizasyon, endüstri mühendisliği ve yöneylem araştırması açısından BNN ve yakın Bayesian uncertainty yöntemlerini ayırır. Amaç her yöntemi kullanmak değil; hangi yöntemin hangi karar problemi için anlamlı olduğunu göstermektir.
 
 ## 1. Tam / katman bazlı BNN + Variational Inference
 
 **Durum:** Repoda var.
 
-Pyro ile ağırlıklara prior konur ve `AutoDiagonalNormal` ile yaklaşık posterior öğrenilir.
-
-Uygun kullanım:
-
-- talep / lead-time belirsizliği,
-- posterior senaryo üretimi,
-- stochastic programming,
-- CVaR / chance constraints,
-- BNN surrogate ile Bayesçi optimizasyon.
+Pyro ile ağırlıklara prior konur ve variational posterior öğrenilir. Talep, lead time, proses çıktısı ve posterior scenario generation için temel yöntemdir.
 
 ## 2. HMC / NUTS ile BNN
 
@@ -22,21 +14,13 @@ Uygun kullanım:
 
 Notebook: [`notebooks/numpyro_nuts_vs_pyro_vi_bnn.ipynb`](./notebooks/numpyro_nuts_vs_pyro_vi_bnn.ipynb)
 
-Aynı küçük BNN, Pyro VI ve NumPyro NUTS ile karşılaştırılır. Amaç NUTS'ı otomatik olarak “doğru” ilan etmek değil; posterior yaklaşım yönteminin predictive coverage ve downstream üretim kararını değiştirip değiştirmediğini ölçmektir.
-
-Küçük/orta ağlarda güçlü benchmark; büyük ağlarda maliyetlidir.
+Aynı küçük BNN, Pyro VI ve NumPyro NUTS ile karşılaştırılır. Amaç NUTS'ı otomatik olarak doğru ilan etmek değil; inference seçiminin coverage ve downstream kararı değiştirip değiştirmediğini ölçmektir.
 
 ## 3. SGMCMC: SGLD / SGHMC
 
-**Durum:** Henüz uygulamalı notebook yok.
+**Durum:** Henüz uygulamalı örnek yok.
 
-Mini-batch MCMC yaklaşımıyla büyük veri ve daha büyük ağlara ölçeklenmeye çalışır.
-
-OR açısından potansiyel kullanım:
-
-- büyük üretim/sensör veri setleri,
-- yüksek boyutlu surrogate modeller,
-- posterior sample tabanlı scenario generation.
+Büyük veri / büyük ağlarda mini-batch MCMC-benzeri posterior sampling için araştırma ağırlıklı seçenektir.
 
 ## 4. Bayesian Last Layer / Neural Linear
 
@@ -44,30 +28,46 @@ OR açısından potansiyel kullanım:
 
 Notebook: [`notebooks/bayesian_last_layer_botorch.ipynb`](./notebooks/bayesian_last_layer_botorch.ipynb)
 
-Deterministik backbone özellik çıkarır; yalnız son katman Bayesçidir:
+Deterministik backbone özellik çıkarır; yalnız son lineer katman Bayesçidir. Gaussian prior + Gaussian likelihood altında son katman posterioru conjugate biçimde hesaplanabilir.
+
+Avantaj: full BNN'den daha ucuz. Sınırlama: backbone epistemik belirsizliği posteriora girmez.
+
+## 5. Laplace Approximation
+
+**Durum:** Repoda uygulamalı notebook var.
+
+Notebook: [`notebooks/laplace_approximation_pytorch_stokastik_kapasite.ipynb`](./notebooks/laplace_approximation_pytorch_stokastik_kapasite.ipynb)
+
+Teorik not: [`LAPLACE_DAYANAK.md`](./LAPLACE_DAYANAK.md)
+
+Önce deterministik / MAP ağ eğitilir; sonra posterior MAP çevresinde yaklaşık Gaussian alınır:
 
 \[
-f(x)=\tilde\phi(x)^\top\beta,
-\qquad
-\beta\mid D\sim\mathcal N(m,\Sigma).
+p(\theta\mid D)
+\approx
+\mathcal N(\theta_{MAP},P^{-1}).
 \]
 
-Avantajları:
+Repodaki örnek `laplace-torch` ile **last-layer Laplace** uygular ve approximate posterior predictive kapasite senaryolarını Pyomo stokastik kapasite planlamasına bağlar.
 
-- full BNN'den daha ucuz,
-- posterior güncellemesi hızlı,
-- BoTorch entegrasyonu pratik,
-- online/sequential optimization için uygun.
+Önemli ayrım:
 
-Sınırlama: backbone epistemik belirsizliği posteriora girmez.
+- Bayesian Last Layer: sabit neural features üzerinde Bayesian linear regression.
+- Laplace: MAP çevresindeki curvature/Hessian üzerinden yerel Gaussian posterior approximation.
 
-## 5. Laplace Approximation BNN
+`laplace-torch` ayrıca full-network ve subnetwork Laplace yapılarını da destekler.
 
-**Durum:** Henüz uygulamalı notebook yok.
+Laplace'ın güçlü kullanım senaryosu:
 
-Önce MAP/deterministik ağ eğitilir; optimum çevresinde ağırlık posterioru yaklaşık Gaussian alınır.
+```text
+mevcut eğitilmiş PyTorch modeli var
++
+full BNN yeniden eğitmek pahalı
++
+uncertainty downstream kararda gerekli
+```
 
-Mevcut endüstriyel PyTorch modelini sonradan uncertainty-aware hale getirmek için pratik bir yöntem olabilir.
+Sınırlama: posterior multimodal veya MAP çevresi Gaussian'dan uzaksa approximation kalitesi düşebilir.
 
 ## 6. Heteroskedastik BNN
 
@@ -75,21 +75,7 @@ Mevcut endüstriyel PyTorch modelini sonradan uncertainty-aware hale getirmek i�
 
 Notebook: [`notebooks/heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb`](./notebooks/heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb)
 
-Model aynı anda
-
-\[
-\mu_w(x),\qquad \sigma_w(x)
-\]
-
-öğrenir ve toplam varyans yasasıyla
-
-\[
-Var(Y\mid x,D)=E_w[\sigma_w^2(x)]+Var_w[\mu_w(x)]
-\]
-
-ayrıştırmasını kullanır.
-
-Özellikle girdiye bağlı talep, işlem süresi, taşıma süresi ve kalite oynaklığı için değerlidir.
+Model aynı anda \(\mu_w(x)\) ve girdiye bağlı \(\sigma_w(x)\) öğrenir. Aleatorik / epistemik ayrım CVaR ve chance constraints'e bağlanır.
 
 ## 7. Multi-output BNN + Multi-objective Optimization
 
@@ -97,28 +83,9 @@ ayrıştırmasını kullanır.
 
 Notebook: [`notebooks/multi_output_bnn_multi_objective_botorch.ipynb`](./notebooks/multi_output_bnn_multi_objective_botorch.ipynb)
 
-Örnek aynı proses kararının üç çıktısını ortak Bayesçi hidden representation ile modeller:
+Kalite, enerji ve çevrim süresi ortak Bayesian representation üzerinden modellenir; Pareto, hypervolume ve qLogEHVI ile yeni deney seçilir.
 
-- kalite,
-- enerji,
-- çevrim süresi.
-
-Ardından objective yönleri
-
-\[
-(\text{quality},-\text{energy},-\text{cycle})
-\]
-
-şeklinde maksimize edilecek uzaya çevrilir ve BoTorch qLogEHVI ile Pareto/hypervolume iyileştiren yeni deney seçilir.
-
-### Kritik ayrım
-
-**Multi-output ≠ multi-objective.**
-
-- Multi-output BNN: birden fazla rassal çıktıyı modeller.
-- Multi-objective optimization: karar vericinin bu çıktılar arasındaki trade-off'u nasıl ele aldığını belirler.
-
-Notebook ortak Bayesçi backbone kullanır, fakat residual likelihood diagonal covariance varsayar. Dolayısıyla tam multivariate residual covariance modeli değildir.
+**Multi-output ≠ multi-objective.** İlki probabilistic modelleme, ikincisi karar tercih yapısıdır.
 
 ## 8. Hierarchical BNN / Partial Pooling
 
@@ -126,102 +93,33 @@ Notebook ortak Bayesçi backbone kullanır, fakat residual likelihood diagonal c
 
 Rehber: [`notebooks/hierarchical_bnn_partial_pooling_kapasite_tahsisi.md`](./notebooks/hierarchical_bnn_partial_pooling_kapasite_tahsisi.md)
 
-Dört fabrikanın aynı temel nonlinear proses ilişkisini paylaştığı fakat lokal sapmalarının ve veri miktarlarının farklı olduğu bir örnek kurulur.
+Ortak nonlinear BNN ile fabrika düzeyi random intercept / slope'lar hierarchical prior altında öğrenilir. Posterior fabrika kapasite senaryoları stochastic allocation modeline aktarılır.
 
-Ortak BNN:
+Her hierarchical problem BNN gerektirmez; mixed-effects / hierarchical regression önemli baseline'dır.
 
-\[
-g_w(x)=W_2\tanh(W_1x+b_1)+b_2.
-\]
-
-Fabrika düzeyi random effect'ler:
-
-\[
-a_j\sim\mathcal N(\mu_a,\tau_a^2),
-\]
-
-\[
-b_j\sim\mathcal N(\mu_b,\tau_b^2).
-\]
-
-Tahmin:
-
-\[
-\mu_{ij}=g_w(x_{ij})+a_j+b_j\widetilde{load}_{ij}.
-\]
-
-Bu yapı **partial pooling** üretir: fabrikalar tamamen ayrı değildir fakat aynı davranışa da zorlanmaz. Az verili fabrikanın posterioru ortak grup bilgisiyle düzenlenebilir ve genellikle daha geniş belirsizlik taşır.
-
-Posterior predictive fabrika kapasite senaryoları daha sonra Pyomo ile stokastik kapasite tahsisi problemine aktarılır.
-
-IE açısından doğal kullanım alanları:
-
-- çok fabrika kapasite / verim modeli,
-- makine grupları için işlem süresi,
-- tedarikçi grupları için lead time / kalite,
-- ürün aileleri için talep,
-- bölgesel talep ve network allocation.
-
-### Kritik sınır
-
-**Her hiyerarşik problem BNN gerektirmez.**
-
-Eğer ilişki basitse hierarchical linear model / GLMM / mixed-effects model daha yorumlanabilir ve daha ucuz olabilir. BNN, nonlinear ortak response surface gerçekten gerekliyse anlamlıdır.
-
-Ayrıca mean-field VI hiyerarşik posterior korelasyonlarını zayıf temsil edebilir; HMC/NUTS veya daha zengin variational posteriorlarla hassasiyet analizi yapılabilir.
-
-## 9. Bayesian RNN / LSTM / temporal BNN
+## 9. Bayesian RNN / LSTM / Temporal BNN
 
 **Durum:** Henüz yok.
 
-Zaman bağımlı süreçlerde:
-
-- talep,
-- remaining useful life,
-- enerji yükü,
-- dinamik üretim durumu
-
-için düşünülebilir.
-
-Pratikte state-space modeller ve diğer probabilistic sequence modeller de baseline olmalıdır.
+Talep, RUL, enerji yükü ve dinamik sistem durumları için düşünülebilir. State-space ve diğer probabilistic sequence modeller baseline olmalıdır.
 
 ## 10. Bayesian GNN
 
 **Durum:** İleri seviye genişletme.
 
-OR bağlantıları:
-
-- ulaşım ağları,
-- tedarik zinciri ağları,
-- elektrik şebekeleri,
-- routing / network design surrogate'ları.
+Ulaşım, tedarik zinciri, elektrik şebekesi, routing ve network design problemleri için potansiyel kullanım alanıdır.
 
 ## 11. Physics-Informed Bayesian Neural Networks
 
 **Durum:** İleri seviye genişletme.
 
-Fiziksel denklemler veya mühendislik kısıtları likelihood/loss yapısına dahil edilir; BNN belirsizliği taşır.
+Fizik denklemleri / mühendislik kısıtları ile Bayesian uncertainty birleştirilir. FEA/CFD, enerji ve proses optimizasyonu için değerlidir.
 
-Uygulamalar:
-
-- enerji sistemleri,
-- akış / ısı transferi,
-- yapısal tasarım,
-- proses mühendisliği,
-- FEA / CFD surrogate optimizasyonu.
-
-## 12. Structured / low-rank / flow variational posterior
+## 12. Structured / Low-rank / Flow Variational Posterior
 
 **Durum:** İleri araştırma seviyesi.
 
-Mean-field posterior ağırlık korelasyonlarını göz ardı eder. Daha zengin posterior aileleri:
-
-- low-rank Gaussian,
-- full-rank Gaussian,
-- normalizing flows,
-- structured variational inference.
-
-Tail-risk, CVaR veya chance constraints posterior geometrisine hassassa önemli olabilir.
+Mean-field posterior ağırlık korelasyonlarını göz ardı eder. Tail-risk veya chance constraint posterior geometrisine hassassa daha zengin posterior aileleri gerekebilir.
 
 ---
 
@@ -233,8 +131,8 @@ Tail-risk, CVaR veya chance constraints posterior geometrisine hassassa önemli 
 - Gaussian Process,
 - conformal prediction,
 - quantile regression,
-- hierarchical linear / mixed-effects modeller,
-- klasik response-surface / Bayesian regression modelleri.
+- mixed-effects / hierarchical regression,
+- klasik response-surface ve Bayesian regression.
 
 Bir endüstriyel projede BNN'nin gerçekten değer katıp katmadığı yalnız RMSE ile değil **downstream karar kalitesi** üzerinden ölçülmelidir.
 
@@ -242,29 +140,30 @@ Bir endüstriyel projede BNN'nin gerçekten değer katıp katmadığı yalnız R
 
 Standart teori olan kısımlar:
 
-- Bayesçi posterior ve posterior predictive,
+- Bayesian posterior / posterior predictive,
 - HMC/NUTS,
-- Bayesçi lineer regresyon posterioru,
+- variational inference,
+- Bayesian linear regression,
+- Laplace approximation,
 - hierarchical priors / partial pooling,
-- random effects,
 - heteroskedastik likelihood,
 - toplam varyans yasası,
-- Pareto dominance,
-- hypervolume,
+- Pareto dominance / hypervolume,
 - CVaR,
 - chance constraints,
 - SAA,
-- Bayesçi optimizasyon / multi-objective BO.
+- Bayesian optimization / multi-objective BO.
 
-Modelleme veya yaklaşık çıkarım tercihi olan kısımlar:
+Modelleme / approximation tercihi olan kısımlar:
 
 - Normal likelihood,
 - `AutoDiagonalNormal`,
+- Laplace curvature yapısı,
+- prior / hyperprior ölçekleri,
 - ağ mimarisi,
-- prior/hyperprior ölçekleri,
-- random intercept/slope yapısı,
-- senaryo/posterior sample sayısı,
-- residual covariance'in diagonal seçilmesi,
+- random effect yapısı,
+- senaryo / posterior sample sayısı,
+- residual covariance varsayımı,
 - hypervolume reference point,
 - sentetik veri fonksiyonları.
 
@@ -272,13 +171,12 @@ Modelleme veya yaklaşık çıkarım tercihi olan kısımlar:
 
 # Repo için sonraki öncelikler
 
-1. **Laplace Approximation + mevcut PyTorch modelini uncertainty-aware hale getirme**
-2. **Correlated multi-output likelihood / multi-task BNN**
-3. **Constrained multi-objective BO**
-4. **Hierarchical BNN için NUTS / richer-VI hassasiyet analizi**
-5. Bayesian RNN / temporal BNN
-6. Bayesian GNN
-7. Physics-Informed BNN
-8. SGMCMC / SGLD / SGHMC
+1. **Correlated multi-output likelihood / multi-task BNN**
+2. **Constrained multi-objective Bayesian optimization**
+3. **Hierarchical BNN için NUTS / richer-VI hassasiyet analizi**
+4. **Temporal / Bayesian sequence models**
+5. Bayesian GNN
+6. Physics-Informed BNN
+7. SGMCMC / SGLD / SGHMC
 
 Bu sıra akademik çeşitlilikten çok OR ve endüstri mühendisliği açısından pratik karar değerine göre önerilmiştir.
