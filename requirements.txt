@@ -1,6 +1,8 @@
 torch
 pyro-ppl
 botorch
+jax
+numpyro
 numpy
 pandas
 matplotlib
