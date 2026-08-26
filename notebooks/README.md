@@ -1,6 +1,6 @@
 # Uygulamalı Notebooklar
 
-Bu klasör, Bayesçi sinir ağlarının endüstri mühendisliği ve yöneylem araştırması problemlerine nasıl bağlanabileceğini üç farklı karar mimarisi üzerinden gösterir.
+Bu klasör, Bayesçi sinir ağlarının endüstri mühendisliği ve yöneylem araştırması problemlerine nasıl bağlanabileceğini dört farklı karar mimarisi üzerinden gösterir.
 
 ## 1. BNN ile Talep Belirsizliği ve Stok/Üretim Optimizasyonu
 
@@ -89,6 +89,33 @@ Sistemi değerlendir ve döngüyü tekrarla
 
 BoTorch'un Monte Carlo acquisition fonksiyonları surrogate modelin GP olmasını zorunlu kılmaz; örneklenebilir bir posterior sağlayan custom modellerle de çalışabilir. Bu notebook Pyro posterior predictive örneklerini `EnsembleModel` üzerinden BoTorch'a bağlar.
 
+## 4. Heteroskedastik BNN + Aleatorik/Epistemik Ayrıştırma + CVaR/Chance Constraint
+
+[`heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb`](./heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb)
+
+Bu notebookta talep varyansı girdiye göre değişir. BNN aynı anda koşullu ortalamayı ve koşullu standart sapmayı öğrenir:
+
+```text
+x
+↓
+BNN
+├── μ_w(x): koşullu ortalama
+└── σ_w(x): girdiye bağlı gözlem gürültüsü
+↓
+Toplam varyans yasası
+├── E_w[σ_w²(x)]       → beklenen koşullu / aleatorik varyans
+└── Var_w[μ_w(x)]      → epistemik varyans
+↓
+posterior predictive senaryolar
+├── ampirik %95 chance constraint
+└── CVaR95 optimizasyonu
+```
+
+Notebook ayrıca iki önemli uyarıyı açıkça gösterir:
+
+- posterior ortalama fonksiyonunu kullanıp gözlem gürültüsünü yok saymak riskli bölgelerde gerekli kapasiteyi düşük tahmin edebilir,
+- örnekleme dayalı chance constraint çözümü otomatik olarak dağılımdan bağımsız sonlu-örneklem garantisi vermez; scenario-approach teorisi veya out-of-sample doğrulama gerekir.
+
 ## Kurulum
 
 Repo kök dizininde:
@@ -113,11 +140,12 @@ Daha sonra `notebooks/` klasöründeki notebookları açıp hücreleri sırayla 
 
 ## Endüstri mühendisliği açısından genel mimari
 
-BNN çoğu örnekte doğrudan optimizasyon çözücüsü değildir. Üç temel rol üstlenir:
+BNN çoğu örnekte doğrudan optimizasyon çözücüsü değildir. Dört temel rol üstlenir:
 
 1. **Belirsiz parametre modeli:** talep, işlem süresi, lead time, arıza riski vb.
 2. **Senaryo üreticisi:** stochastic programming, CVaR veya chance constraints için posterior örnekleri.
 3. **Surrogate model:** pahalı simülasyon veya fiziksel deneylerin Bayesçi optimizasyonu.
+4. **Belirsizlik ayrıştırıcı:** aleatorik ve epistemik bileşenleri karar modeline ayrı ayrı taşıma.
 
 Bu mimariler şu belirsiz büyüklüklere uygulanabilir:
 
@@ -128,9 +156,11 @@ Bu mimariler şu belirsiz büyüklüklere uygulanabilir:
 - enerji tüketimi / kalite → proses optimizasyonu,
 - pahalı simülasyon çıktıları → simulation optimization.
 
-## BNN aileleri
+## BNN aileleri ve teorik dayanak
 
-Repo kapsamında henüz notebooka dönüşmemiş BNN türleri ve önerilen öncelik sırası için kök dizindeki [`BNN_AILELERI.md`](../BNN_AILELERI.md) dosyasına bakın.
+Repo kapsamında henüz notebooka dönüşmemiş BNN türleri için kök dizindeki [`BNN_AILELERI.md`](../BNN_AILELERI.md) dosyasına bakın.
+
+Kullanılan temel matematiksel yapıların hangi klasik çalışmalara ve standart OR literatürüne dayandığı için [`TEORIK_DAYANAK.md`](../TEORIK_DAYANAK.md) dosyasına bakın.
 
 ## Not
 
