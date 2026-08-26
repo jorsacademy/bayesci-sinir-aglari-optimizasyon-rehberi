@@ -70,7 +70,9 @@ OR açısından özellikle mevcut endüstriyel NN modelini risk-duyarlı optimiz
 
 ## 6. Heteroskedastik BNN
 
-**Durum:** Kritik eksiklerden biri.
+**Durum:** Repoda uygulamalı notebook var.
+
+Notebook: [`notebooks/heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb`](./notebooks/heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb)
 
 Yalnız ortalama değil, girdiye bağlı gözlem varyansı da modellenir:
 
@@ -78,7 +80,17 @@ Yalnız ortalama değil, girdiye bağlı gözlem varyansı da modellenir:
 y\mid x,w \sim \mathcal N(\mu_w(x),\sigma_w^2(x)).
 \]
 
-Bu, aleatorik ve epistemik belirsizliğin ayrıştırılması için özellikle önemlidir.
+Notebook toplam varyans yasasını kullanarak:
+
+\[
+Var(Y\mid x,\mathcal D)
+=
+E_w[\sigma_w^2(x)]
++
+Var_w[\mu_w(x)]
+\]
+
+ayrıştırmasını Monte Carlo ile tahmin eder ve posterior predictive senaryoları hem CVaR hem de chance-constrained üretim modeline aktarır.
 
 IE / OR kullanım alanları:
 
@@ -86,8 +98,6 @@ IE / OR kullanım alanları:
 - makinelerde çalışma koşuluna bağlı işlem süresi varyansı,
 - trafik yoğunluğuna bağlı taşıma süresi varyansı,
 - proses set-point'ine bağlı kalite dağılımı.
-
-Chance constraint ve CVaR için yüksek öncelikli bir genişletmedir.
 
 ## 7. Multi-output / Multi-task BNN
 
@@ -190,17 +200,41 @@ Aşağıdakiler strict anlamda tam BNN değildir, fakat uncertainty modeling ben
 
 Özellikle endüstriyel projede BNN'nin gerçekten değer katıp katmadığı bu baseline'lara karşı **karar kalitesi** üzerinden ölçülmelidir.
 
+# Matematiksel gerçeklik sınırı
+
+Bu repodaki temel kavramlar standart literatüre dayanır; fakat model çıktısının gerçek sistem için doğru olması ayrıca test edilmelidir.
+
+Standart teori olan kısımlar:
+
+- Bayesçi posterior / posterior predictive,
+- heteroskedastik likelihood,
+- toplam varyans yasası,
+- CVaR,
+- chance constraints,
+- stochastic programming / SAA,
+- Bayesçi optimizasyon.
+
+Modelleme / yaklaşık çıkarım tercihi olan kısımlar:
+
+- Normal likelihood seçimi,
+- `AutoDiagonalNormal` mean-field posterioru,
+- sentetik veri üretim fonksiyonları,
+- senaryo sayısı,
+- prior ölçekleri,
+- ağ mimarisi.
+
+Bu nedenle `matematiksel olarak geçerli` ile `belirli bir fabrikada ampirik olarak doğru` aynı iddia değildir. İkincisi kalibrasyon ve out-of-sample karar testi gerektirir.
+
 # Repo için önerilen öncelik sırası
 
-Yeni notebook ekleme önceliği açısından:
+Heteroskedastik BNN artık eklendi. Bundan sonraki notebook önceliği:
 
-1. **Heteroskedastik BNN + chance constraint / CVaR**
-2. **Bayesian Last Layer + BoTorch**
-3. **NumPyro NUTS vs Variational Inference karşılaştırması**
-4. **Multi-output BNN + multi-objective optimization**
-5. **Hierarchical BNN + çok fabrika / çok tedarikçi problemi**
-6. Bayesian RNN / temporal BNN
-7. Bayesian GNN
-8. Physics-Informed BNN
+1. **Bayesian Last Layer + BoTorch**
+2. **NumPyro NUTS vs Variational Inference karşılaştırması**
+3. **Multi-output BNN + multi-objective optimization**
+4. **Hierarchical BNN + çok fabrika / çok tedarikçi problemi**
+5. Bayesian RNN / temporal BNN
+6. Bayesian GNN
+7. Physics-Informed BNN
 
 Bu sıra, akademik çeşitlilikten çok OR ve endüstri mühendisliği açısından pratik karar değerine göre önerilmiştir.
