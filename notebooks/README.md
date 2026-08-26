@@ -1,6 +1,6 @@
 # Uygulamalı Notebooklar
 
-Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini beş farklı mimari üzerinden gösterir.
+Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini altı farklı mimari üzerinden gösterir.
 
 ## 1. BNN ile Talep Belirsizliği ve Stok/Üretim Optimizasyonu
 
@@ -16,13 +16,7 @@ BNN'nin senaryo üreticisi, matematiksel programlamanın ise karar çözücüsü
 
 [`bnn_cvar_chance_constraint_uretim.ipynb`](./bnn_cvar_chance_constraint_uretim.ipynb)
 
-Aynı posterior predictive talep dağılımı altında:
-
-- beklenen maliyet / SAA,
-- CVaR95,
-- %95 hizmet seviyesi / chance constraint
-
-yaklaşımlarını karşılaştırır. `uncertainty model` ile `risk preference` kavramlarının ayrı olduğunu gösterir.
+Aynı posterior predictive talep dağılımı altında beklenen maliyet / SAA, CVaR95 ve %95 hizmet seviyesi / chance constraint yaklaşımlarını karşılaştırır. `uncertainty model` ile `risk preference` kavramlarının ayrı olduğunu gösterir.
 
 ## 3. Pyro BNN Surrogate + BoTorch ile Bayesçi Optimizasyon
 
@@ -34,26 +28,17 @@ Başlangıç deneyleri → Pyro BNN surrogate → posterior samples → BoTorch 
 
 Pahalı fiziksel deneyler, ayrık olay simülasyonları, dijital ikiz, FEA/CFD ve proses optimizasyonu için BNN'nin surrogate rolünü gösterir.
 
-BoTorch'un Monte Carlo acquisition fonksiyonları surrogate modelin GP olmasını zorunlu kılmaz; örneklenebilir bir posterior sağlayan custom modellerle de çalışabilir.
-
 ## 4. Heteroskedastik BNN + Aleatorik/Epistemik Ayrıştırma
 
 [`heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb`](./heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb)
 
-Talep varyansının girdiye göre değiştiği durumda BNN aynı anda:
-
-- \(\mu_w(x)\): koşullu ortalama,
-- \(\sigma_w(x)\): girdiye bağlı gözlem gürültüsü
-
-öğrenir. Toplam varyans yasasıyla:
+Talep varyansının girdiye göre değiştiği durumda BNN aynı anda koşullu ortalama ve girdiye bağlı gözlem gürültüsünü öğrenir. Toplam varyans yasısıyla:
 
 \[
 Var(Y\mid x,D)=E_w[\sigma_w^2(x)]+Var_w[\mu_w(x)]
 \]
 
-ayrıştırması yapılır ve posterior predictive senaryolar CVaR/chance-constraint kararlarına bağlanır.
-
-Notebook ayrıca, posterior ortalama fonksiyonunu kullanıp gözlem gürültüsünü yok saymanın riskli bölgelerde kapasiteyi düşük tahmin edebileceğini açıkça gösterir.
+ayrıştırması yapılır ve posterior predictive senaryolar CVaR / chance-constraint kararlarına bağlanır.
 
 ## 5. Bayesian Last Layer / Neural Linear + BoTorch
 
@@ -62,27 +47,50 @@ Notebook ayrıca, posterior ortalama fonksiyonunu kullanıp gözlem gürültüs�
 Bu notebook **tam BNN değildir**. Gizli katmanlar deterministik olarak özellik öğrenir; yalnız son lineer katmanın ağırlıkları Bayesçi modellenir:
 
 ```text
-Deney verisi
-    ↓
-deterministik backbone
-    ↓
-φ(x): öğrenilmiş özellikler
-    ↓
-Bayesçi lineer son katman
-β | D ~ N(m, Σ)
-    ↓
-posterior ağırlık örnekleri
-    ↓
-BoTorch EnsembleModel
-    ↓
-qLogExpectedImprovement
-    ↓
-yeni deney noktası
+Deney verisi → deterministik backbone → φ(x) → Bayesçi lineer son katman → posterior örnekleri → BoTorch → yeni deney
 ```
 
-Gaussian prior + Gaussian likelihood altında son katman posterioru kapalı formda hesaplanabildiğinden full BNN'ye göre çok daha hafiftir. Özellikle online/sequential optimization için pragmatik bir alternatiftir.
+Gaussian prior + Gaussian likelihood altında son katman posterioru kapalı formda hesaplanabildiğinden full BNN'ye göre çok daha hafiftir. Sınırlaması: backbone belirsizliği posteriora taşınmaz.
 
-Önemli sınırlama: backbone ağırlıklarının belirsizliği posteriora taşınmaz. Bu nedenle BLL'nin epistemik belirsizliği full BNN ile aynı değildir ve OOD bölgelerinde aşırı güven sorunu görülebilir.
+## 6. NumPyro NUTS vs Pyro Variational Inference
+
+[`numpyro_nuts_vs_pyro_vi_bnn.ipynb`](./numpyro_nuts_vs_pyro_vi_bnn.ipynb)
+
+Aynı küçük BNN mimarisini ve aynı priorları iki farklı posterior çıkarım yöntemiyle karşılaştırır:
+
+```text
+aynı veri + aynı BNN
+       ↓
+ ┌───────────────┬───────────────┐
+ │ Pyro SVI / VI │ NumPyro NUTS │
+ └───────────────┴───────────────┘
+       ↓
+posterior predictive
+       ↓
+RMSE + %90 coverage + interval width
+       ↓
+beklenen maliyet / CVaR üretim kararı
+       ↓
+sentetik gerçek dağılımda out-of-sample test
+```
+
+Notebookun temel sorusu şudur:
+
+> Daha yaklaşık ama hızlı bir posterior ile daha pahalı MCMC posterioru aynı operasyonel kararı mı veriyor?
+
+Özellikle şu çıktılar karşılaştırılır:
+
+- predictive RMSE,
+- %90 predictive interval coverage,
+- interval genişliği,
+- posterior predictive standart sapma,
+- epistemik ortalama fonksiyonunun yayılımı,
+- beklenen maliyet için optimum üretim miktarı,
+- CVaR95 için optimum üretim miktarı,
+- gerçek/sentetik out-of-sample maliyet ve stockout riski,
+- hesaplama süresi.
+
+NUTS otomatik olarak "doğru posterior" ilan edilmez. Notebook divergence sayısını ve `print_summary()` çıktılarını kontrol eder. Öğretim süresini sınırlamak için tek chain kullanılır; ciddi bir analizde birden fazla chain ve \(\hat R\) kontrolü gerekir.
 
 ## Kurulum
 
@@ -95,12 +103,13 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-Daha sonra `notebooks/` klasöründeki notebookları açıp hücreleri sırayla çalıştırın.
+NumPyro notebooku için `requirements.txt` içinde `jax` ve `numpyro` da bulunur.
 
 ## Kullanılan kütüphaneler
 
 - `torch`: sinir ağı altyapısı
-- `pyro-ppl`: Bayesçi sinir ağı ve SVI
+- `pyro-ppl`: BNN ve variational inference
+- `jax`, `numpyro`: NUTS / HMC tabanlı posterior örnekleme
 - `botorch`: Bayesçi optimizasyon ve acquisition fonksiyonları
 - `pyomo`: matematiksel programlama
 - `highspy`: HiGHS LP/MIP çözücüsü
@@ -115,8 +124,7 @@ Bu repoda BNN/Bayesian surrogate doğrudan optimizasyon çözücüsü olmaktan �
 3. **Surrogate model:** pahalı simülasyon veya fiziksel deneylerin Bayesçi optimizasyonu.
 4. **Belirsizlik ayrıştırıcı:** aleatorik ve epistemik bileşenleri karar modeline taşıma.
 5. **Hafif online surrogate:** Bayesian Last Layer ile düşük maliyetli posterior güncellemesi.
-
-Bu mimariler işlem süresi, lead time, arıza/RUL, taşıma süresi, enerji tüketimi, kalite, talep ve pahalı simülasyon çıktıları gibi IE/OR büyüklüklerine uyarlanabilir.
+6. **Inference hassasiyet analizi:** VI / MCMC seçiminin downstream kararı değiştirip değiştirmediğini ölçme.
 
 ## BNN aileleri ve teorik dayanak
 
@@ -124,4 +132,4 @@ Henüz notebooka dönüşmemiş yöntemler için [`BNN_AILELERI.md`](../BNN_AILE
 
 ## Not
 
-Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, senaryo sayısı duyarlılığı, baseline modeller, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
+Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, senaryo sayısı duyarlılığı, baseline modeller, MCMC diagnostics, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
