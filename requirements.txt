@@ -1,0 +1,8 @@
+torch
+pyro-ppl
+numpy
+pandas
+matplotlib
+pyomo
+highspy
+jupyter
