@@ -1,6 +1,6 @@
 # Uygulamalı Notebooklar
 
-Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini altı farklı mimari üzerinden gösterir.
+Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini **yedi farklı mimari** üzerinden gösterir.
 
 ## 1. BNN ile Talep Belirsizliği ve Stok/Üretim Optimizasyonu
 
@@ -32,7 +32,7 @@ Pahalı fiziksel deneyler, ayrık olay simülasyonları, dijital ikiz, FEA/CFD v
 
 [`heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb`](./heteroskedastik_bnn_belirsizlik_cvar_chance.ipynb)
 
-Talep varyansının girdiye göre değiştiği durumda BNN aynı anda koşullu ortalama ve girdiye bağlı gözlem gürültüsünü öğrenir. Toplam varyans yasısıyla:
+Talep varyansının girdiye göre değiştiği durumda BNN koşullu ortalama ve girdiye bağlı gözlem gürültüsünü birlikte öğrenir. Toplam varyans yasısıyla
 
 \[
 Var(Y\mid x,D)=E_w[\sigma_w^2(x)]+Var_w[\mu_w(x)]
@@ -44,53 +44,61 @@ ayrıştırması yapılır ve posterior predictive senaryolar CVaR / chance-cons
 
 [`bayesian_last_layer_botorch.ipynb`](./bayesian_last_layer_botorch.ipynb)
 
-Bu notebook **tam BNN değildir**. Gizli katmanlar deterministik olarak özellik öğrenir; yalnız son lineer katmanın ağırlıkları Bayesçi modellenir:
+Bu notebook **tam BNN değildir**. Gizli katmanlar deterministik olarak özellik öğrenir; yalnız son lineer katman Bayesçi modellenir.
 
 ```text
-Deney verisi → deterministik backbone → φ(x) → Bayesçi lineer son katman → posterior örnekleri → BoTorch → yeni deney
+Deney verisi → deterministik backbone → φ(x) → Bayesçi lineer son katman → posterior → BoTorch
 ```
 
-Gaussian prior + Gaussian likelihood altında son katman posterioru kapalı formda hesaplanabildiğinden full BNN'ye göre çok daha hafiftir. Sınırlaması: backbone belirsizliği posteriora taşınmaz.
+Gaussian prior + Gaussian likelihood altında son katman posterioru kapalı formda hesaplanabildiğinden full BNN'ye göre daha hafiftir. Sınırlaması: backbone belirsizliği posteriora taşınmaz.
 
 ## 6. NumPyro NUTS vs Pyro Variational Inference
 
 [`numpyro_nuts_vs_pyro_vi_bnn.ipynb`](./numpyro_nuts_vs_pyro_vi_bnn.ipynb)
 
-Aynı küçük BNN mimarisini ve aynı priorları iki farklı posterior çıkarım yöntemiyle karşılaştırır:
+Aynı küçük BNN mimarisini ve aynı priorları iki çıkarım yöntemiyle karşılaştırır:
 
 ```text
 aynı veri + aynı BNN
        ↓
- ┌───────────────┬───────────────┐
- │ Pyro SVI / VI │ NumPyro NUTS │
- └───────────────┴───────────────┘
+Pyro VI       NumPyro NUTS
        ↓
 posterior predictive
        ↓
-RMSE + %90 coverage + interval width
+RMSE / coverage / interval width
        ↓
-beklenen maliyet / CVaR üretim kararı
-       ↓
-sentetik gerçek dağılımda out-of-sample test
+beklenen maliyet / CVaR kararı
 ```
 
-Notebookun temel sorusu şudur:
+Karşılaştırma predictive accuracy ile sınırlı değildir; posterior yaklaşımının downstream operasyonel kararı değiştirip değiştirmediği ölçülür. NUTS otomatik olarak “ground truth posterior” ilan edilmez; divergence, ESS ve ciddi analizde çoklu-chain / R-hat kontrolleri gerekir.
 
-> Daha yaklaşık ama hızlı bir posterior ile daha pahalı MCMC posterioru aynı operasyonel kararı mı veriyor?
+## 7. Multi-output BNN + Çok Amaçlı Bayesçi Optimizasyon
 
-Özellikle şu çıktılar karşılaştırılır:
+[`multi_output_bnn_multi_objective_botorch.ipynb`](./multi_output_bnn_multi_objective_botorch.ipynb)
 
-- predictive RMSE,
-- %90 predictive interval coverage,
-- interval genişliği,
-- posterior predictive standart sapma,
-- epistemik ortalama fonksiyonunun yayılımı,
-- beklenen maliyet için optimum üretim miktarı,
-- CVaR95 için optimum üretim miktarı,
-- gerçek/sentetik out-of-sample maliyet ve stockout riski,
-- hesaplama süresi.
+Aynı proses ayarının üç çıktısını ortak Bayesçi ağ ile modeller:
 
-NUTS otomatik olarak "doğru posterior" ilan edilmez. Notebook divergence sayısını ve `print_summary()` çıktılarını kontrol eder. Öğretim süresini sınırlamak için tek chain kullanılır; ciddi bir analizde birden fazla chain ve \(\hat R\) kontrolü gerekir.
+- kalite ↑,
+- enerji ↓,
+- çevrim süresi ↓.
+
+```text
+proses deneyleri
+      ↓
+shared multi-output BNN
+      ↓
+3 çıktının posterioru
+      ↓
+Pareto kümesi + hypervolume
+      ↓
+BoTorch qLogEHVI
+      ↓
+yeni deney noktası
+```
+
+Önemli ayrım: **multi-output** modelleme birden fazla rassal çıktının joint/ortak modellenmesidir; **multi-objective optimization** ise bu çıktılar arasındaki tercih ve trade-off yapısını tanımlar. Notebook üç output için ortak Bayesçi gizli katman kullanır; residual likelihood diagonal olduğu için tam multivariate residual covariance modeli değildir.
+
+BoTorch 0.18.1 multi-objective BO için qLogEHVI, qLogNEHVI ve qLogNParEGO gibi acquisition fonksiyonlarını destekler. Bu örnekte qLogEHVI kullanılır.
 
 ## Kurulum
 
@@ -103,21 +111,19 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-NumPyro notebooku için `requirements.txt` içinde `jax` ve `numpyro` da bulunur.
-
-## Kullanılan kütüphaneler
+## Kullanılan ana kütüphaneler
 
 - `torch`: sinir ağı altyapısı
 - `pyro-ppl`: BNN ve variational inference
 - `jax`, `numpyro`: NUTS / HMC tabanlı posterior örnekleme
-- `botorch`: Bayesçi optimizasyon ve acquisition fonksiyonları
+- `botorch`: tek ve çok amaçlı Bayesçi optimizasyon
 - `pyomo`: matematiksel programlama
 - `highspy`: HiGHS LP/MIP çözücüsü
 - `numpy`, `pandas`, `matplotlib`: veri işleme ve görselleştirme
 
 ## Endüstri mühendisliği açısından genel roller
 
-Bu repoda BNN/Bayesian surrogate doğrudan optimizasyon çözücüsü olmaktan çok şu rolleri üstlenir:
+Bu repoda BNN/Bayesian surrogate çoğunlukla optimizasyon çözücüsünün kendisi değildir. Şu rolleri üstlenir:
 
 1. **Belirsiz parametre modeli:** talep, işlem süresi, lead time, arıza riski vb.
 2. **Senaryo üreticisi:** stochastic programming, CVaR ve chance constraints.
@@ -125,11 +131,12 @@ Bu repoda BNN/Bayesian surrogate doğrudan optimizasyon çözücüsü olmaktan �
 4. **Belirsizlik ayrıştırıcı:** aleatorik ve epistemik bileşenleri karar modeline taşıma.
 5. **Hafif online surrogate:** Bayesian Last Layer ile düşük maliyetli posterior güncellemesi.
 6. **Inference hassasiyet analizi:** VI / MCMC seçiminin downstream kararı değiştirip değiştirmediğini ölçme.
+7. **Çok çıktılı karar modeli:** kalite–enerji–süre gibi trade-off'larda Pareto ve hypervolume tabanlı deney seçimi.
 
 ## BNN aileleri ve teorik dayanak
 
-Henüz notebooka dönüşmemiş yöntemler için [`BNN_AILELERI.md`](../BNN_AILELERI.md), matematiksel dayanak ve sınırlar için [`TEORIK_DAYANAK.md`](../TEORIK_DAYANAK.md) dosyasına bakın.
+Yöntem taksonomisi için [`BNN_AILELERI.md`](../BNN_AILELERI.md), genel matematiksel dayanak için [`TEORIK_DAYANAK.md`](../TEORIK_DAYANAK.md), multi-output/MOBO notları için [`MULTI_OUTPUT_MOBO_DAYANAK.md`](../MULTI_OUTPUT_MOBO_DAYANAK.md) dosyasına bakın.
 
 ## Not
 
-Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, senaryo sayısı duyarlılığı, baseline modeller, MCMC diagnostics, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
+Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, objective korelasyon yapısı, reference-point duyarlılığı, baseline modeller, MCMC diagnostics, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
