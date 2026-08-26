@@ -1,6 +1,6 @@
-# Uygulamalı Notebooklar
+# Uygulamalı Notebooklar ve Rehberler
 
-Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini **yedi farklı mimari** üzerinden gösterir.
+Bu klasör, Bayesçi sinir ağlarının ve yakın Bayesçi belirsizlik modellerinin endüstri mühendisliği / yöneylem araştırması kararlarına nasıl bağlanabileceğini **sekiz farklı mimari** üzerinden gösterir.
 
 ## 1. BNN ile Talep Belirsizliği ve Stok/Üretim Optimizasyonu
 
@@ -96,9 +96,39 @@ BoTorch qLogEHVI
 yeni deney noktası
 ```
 
-Önemli ayrım: **multi-output** modelleme birden fazla rassal çıktının joint/ortak modellenmesidir; **multi-objective optimization** ise bu çıktılar arasındaki tercih ve trade-off yapısını tanımlar. Notebook üç output için ortak Bayesçi gizli katman kullanır; residual likelihood diagonal olduğu için tam multivariate residual covariance modeli değildir.
+Önemli ayrım: **multi-output** modelleme birden fazla rassal çıktının ortak modellenmesidir; **multi-objective optimization** ise bu çıktılar arasındaki tercih ve trade-off yapısını tanımlar. Notebook ortak Bayesçi gizli katman kullanır; residual likelihood diagonal olduğu için tam multivariate residual covariance modeli değildir.
 
-BoTorch 0.18.1 multi-objective BO için qLogEHVI, qLogNEHVI ve qLogNParEGO gibi acquisition fonksiyonlarını destekler. Bu örnekte qLogEHVI kullanılır.
+## 8. Hierarchical BNN + Çok Fabrikalı Partial Pooling + Kapasite Tahsisi
+
+[`hierarchical_bnn_partial_pooling_kapasite_tahsisi.md`](./hierarchical_bnn_partial_pooling_kapasite_tahsisi.md)
+
+Dört fabrikanın aynı proses fiziğini paylaştığı fakat veri miktarlarının ve lokal performanslarının farklı olduğu bir örnek kurar.
+
+```text
+çok fabrikalı veri
+      ↓
+shared Bayesian NN
+      +
+fabrika random intercept / slope
+      ↓
+hierarchical prior + partial pooling
+      ↓
+fabrika bazlı posterior kapasite senaryoları
+      ↓
+Pyomo stokastik kapasite tahsisi
+```
+
+Modelde fabrika etkileri bağımsız sabit parametreler değildir:
+
+\[
+a_j\sim N(\mu_a,\tau_a^2),
+\qquad
+b_j\sim N(\mu_b,\tau_b^2).
+\]
+
+Bu nedenle az verili fabrikanın tahmini diğer fabrikalardan öğrenilen ortak yapıyla düzenlenebilir. Rehber ayrıca posterior-mean-only baseline ile stochastic allocation kararını karşılaştırır.
+
+Kritik uyarı: **her hiyerarşik problem BNN gerektirmez**. Mixed-effects / hierarchical regression, GP ve complete/no-pooling baseline'ları mutlaka değerlendirilmelidir.
 
 ## Kurulum
 
@@ -114,7 +144,7 @@ jupyter notebook
 ## Kullanılan ana kütüphaneler
 
 - `torch`: sinir ağı altyapısı
-- `pyro-ppl`: BNN ve variational inference
+- `pyro-ppl`: BNN, hierarchical modeling ve variational inference
 - `jax`, `numpyro`: NUTS / HMC tabanlı posterior örnekleme
 - `botorch`: tek ve çok amaçlı Bayesçi optimizasyon
 - `pyomo`: matematiksel programlama
@@ -132,6 +162,7 @@ Bu repoda BNN/Bayesian surrogate çoğunlukla optimizasyon çözücüsünün ken
 5. **Hafif online surrogate:** Bayesian Last Layer ile düşük maliyetli posterior güncellemesi.
 6. **Inference hassasiyet analizi:** VI / MCMC seçiminin downstream kararı değiştirip değiştirmediğini ölçme.
 7. **Çok çıktılı karar modeli:** kalite–enerji–süre gibi trade-off'larda Pareto ve hypervolume tabanlı deney seçimi.
+8. **Partial-pooling grup modeli:** fabrika/makine/tedarikçi gibi gruplar arasında bilgi paylaşarak grup bazlı karar belirsizliği üretme.
 
 ## BNN aileleri ve teorik dayanak
 
@@ -139,4 +170,4 @@ Yöntem taksonomisi için [`BNN_AILELERI.md`](../BNN_AILELERI.md), genel matemat
 
 ## Not
 
-Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, objective korelasyon yapısı, reference-point duyarlılığı, baseline modeller, MCMC diagnostics, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
+Örnekler öğretim amaçlıdır ve sentetik veri kullanır. Gerçek karar sistemlerinde posterior kalibrasyonu, OOD davranışı, grup yapısının geçerliliği, pooling seviyesi, baseline modeller, MCMC diagnostics, hesaplama bütçesi ve **out-of-sample downstream karar kalitesi** ayrıca doğrulanmalıdır.
