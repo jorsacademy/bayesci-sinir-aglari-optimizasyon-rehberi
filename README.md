@@ -1,4 +1,10 @@
-# Bayesçi Sinir Ağları ile Optimizasyon ve Yöneylem Araştırması
+# Bayesci Sinir Aglari Optimizasyon Rehberi
+
+<!-- portfolio-umbrella:start -->
+## Portfolio role
+
+This repository is intentionally maintained as a standalone primary repository in the consolidated Jors Academy portfolio. It is not used as a container for other projects.
+<!-- portfolio-umbrella:end -->
 
 Bu depo, **Bayesçi Sinir Ağlarının (Bayesian Neural Networks, BNN)** belirsizlik içeren optimizasyon, endüstri mühendisliği ve yöneylem araştırması (Operations Research, OR) problemlerinde nasıl kullanılabileceğini açıklayan Türkçe bir uygulama rehberidir.
 
