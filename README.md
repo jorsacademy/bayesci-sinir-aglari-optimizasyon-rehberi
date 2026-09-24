@@ -1,4 +1,4 @@
-# Bayesci Sinir Aglari Optimizasyon Rehberi
+# Bayesçi Sinir Ağları Optimizasyon Rehberi
 
 <!-- portfolio-umbrella:start -->
 ## Portfolio role
