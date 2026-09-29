@@ -1,0 +1,12 @@
+schema_version: 1
+repository: bayesci-sinir-aglari-optimizasyon-rehberi
+role: standalone
+axis: guide
+area: bayesian-neural-networks-tr
+status: active
+owner: jorsacademy
+projects: []
+conventions:
+  provenance_records: false
+  reproducibility_expected: true
+  benchmark_assumptions_documented: true
