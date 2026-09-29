@@ -6,6 +6,10 @@
 This repository is intentionally maintained as a standalone primary repository in the consolidated Jors Academy portfolio. It is not used as a container for other projects.
 <!-- portfolio-umbrella:end -->
 
+## Dil sürümü
+
+Bu deponun diğer dil sürümü: [Bayesian Neural Networks Optimization Guide](https://github.com/jorsacademy/bayesian-neural-networks-optimization-guide).
+
 Bu depo, **Bayesçi Sinir Ağlarının (Bayesian Neural Networks, BNN)** belirsizlik içeren optimizasyon, endüstri mühendisliği ve yöneylem araştırması (Operations Research, OR) problemlerinde nasıl kullanılabileceğini açıklayan Türkçe bir uygulama rehberidir.
 
 > **Son güncelleme:** 26 Ağustos 2026
